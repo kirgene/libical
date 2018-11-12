@@ -533,6 +533,11 @@ typedef ssize_t IO_SSIZE_T;
 #define MAXPATHLEN 1024
 #endif
 
+/* define SIZE_MAX */
+#if !defined(SIZE_MAX)
+#define SIZE_MAX sizeof(size_t)
+#endif
+
 /* MIN macro */
 #if !defined(MIN)
 #define MIN(a,b) (((a)<(b))?(a):(b))

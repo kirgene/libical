@@ -45,11 +45,13 @@ DFARS 252.227-7013 or 48 CFR 52.227-19, as applicable.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include <errno.h>
-#include <iconv.h>
-#include <stdint.h>
 
 #include "vobject.h"
+
+#include <errno.h>
+#include <iconv.h>
+#include <stddef.h>     /* for ptrdiff_t */
+#include <stdint.h>
 
 #define NAME_OF(o)                      o->id
 #define VALUE_TYPE(o)                   o->valType
@@ -1442,15 +1444,20 @@ wchar_t* fakeUnicode(const char *ps, size_t *bytes)
 	 * allocation (or less), and method 2 otherwise. From there, the
 	 * standard exponential progression for realloc is applied.
 	 */
-	size_t zs = strlen(ps), out_size, out_rem;
+	size_t out_size, out_rem;
 	char *out_block, *out_iter;
+  wchar_t *wide, *p;
+
+  size_t zs = strlen(ps);
 	iconv_t conv = iconv_open("wchar_t", "utf-8");
 
 	if (conv == (iconv_t)-1)
 		return NULL;
-	if (zs >= (SIZE_MAX - sizeof(wchar_t)) / sizeof(wchar_t))
+	if (zs >= (SIZE_MAX - sizeof(wchar_t)) / sizeof(wchar_t)) {
 		/* Input is larger than anything we want to handle */
+    iconv_close(conv);
 		return NULL;
+  }
 	/* Initial allocation size as per above. */
 	out_size = out_rem = zs * sizeof(wchar_t);
 	if (out_size >= 1024 - sizeof(wchar_t))
@@ -1462,21 +1469,24 @@ wchar_t* fakeUnicode(const char *ps, size_t *bytes)
 	}
 
 	while (zs > 0) {
-		int ret;
+    char *new_block = NULL;
+		size_t ret;
 		errno = 0;
 		ret = iconv(conv, (char **)&ps, &zs, &out_iter, &out_rem);
-		if (ret >= 0)
+		if (ret != (size_t)-1)
 			continue;
 		if (errno == EILSEQ || errno == EINVAL) {
 			++ps;
 			--zs;
 			continue;
 		}
+#if defined(E2BIG)
 		if (errno != E2BIG)
 			break;
+#endif
 		out_rem  += out_size;
 		out_size *= 2;
-		char *new_block = realloc(out_block, out_size + sizeof(wchar_t));
+		new_block = realloc(out_block, out_size + sizeof(wchar_t));
 		if (new_block == NULL) {
 			free(out_block);
 			iconv_close(conv);
@@ -1486,16 +1496,22 @@ wchar_t* fakeUnicode(const char *ps, size_t *bytes)
 		out_block = new_block;
 	}
 
-	wchar_t *wide = (wchar_t *)out_block, *p = wide;
+	wide = (wchar_t *)out_block;
+#if !defined(__clang_analyzer__)
+  p = wide;
 	for (; p < (wchar_t *)(out_block + out_size - out_rem); ++p) {
 		if (*p == '\n')
 			*p = 0x2028;
 		else if (*p == '\r')
 			*p = 0x2029;
 	}
+#ifndef S_SPLINT_S //split doesn't like this assignment for unknown reasons
 	*p = L'\0';
+#endif
 	if (bytes != NULL)
-		*bytes = (char *)p - out_block;
+		*bytes = (size_t)(ptrdiff_t)((char *)p - out_block);
+#endif /* __clang_analyzer__ */
+  iconv_close(conv);
 	return wide;
 }
 

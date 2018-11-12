@@ -251,6 +251,8 @@ CPPCHECK() {
            -D PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP="" \
            -D _unused="(void)" \
            -D _deprecated="(void)" \
+           -D E2BIG=0 \
+           -D SIZE_MAX=64 \
            -D F_OK=0 \
            -D R_OK=0 \
            -U YYSTYPE \

@@ -454,7 +454,8 @@ static void enterValues(const char *value)
                 setVObjectUStringZValue_(curProp,fakeUnicode(p2,0));
                 free(p2);
             } else {
-            setVObjectUStringZValue_(curProp,fakeUnicode(value,0));
+                setVObjectUStringZValue_(curProp,fakeUnicode(value,0));
+                free(value);
             }
         }
     }
