@@ -158,6 +158,13 @@ set_package_properties(Perl PROPERTIES
   PURPOSE "Required by the libical build system."
 )
 
+# must have iconv
+find_package(Iconv REQUIRED)
+set_package_properties(Iconv PROPERTIES
+  TYPE REQUIRED
+  PURPOSE "Required vcs format parsing."
+)
+
 # Ensure finding 64bit libs when using 64-bit compilers
 if(CMAKE_CL_64)
   set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS True)

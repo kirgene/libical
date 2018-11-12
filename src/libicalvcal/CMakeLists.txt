@@ -33,6 +33,9 @@ if(NOT SHARED_ONLY)
 endif()
 
 target_link_libraries(icalvcal ical)
+if(NOT Iconv_IS_BUILT_IN)
+  target_link_libraries(icalvcal ${Iconv_LIBRARIES})
+endif()
 
 if(MSVC)
   set_target_properties(icalvcal PROPERTIES PREFIX "lib")
